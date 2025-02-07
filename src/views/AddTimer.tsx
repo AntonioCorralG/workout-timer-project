@@ -134,7 +134,10 @@ const AddTimerView = () => {
                         type="submit"
                         height={40}
                         width={100}
-                        onClick={handleSubmit}
+                        onClick={(e) => {
+                            e?.preventDefault();
+                            handleSubmit(e as React.FormEvent);
+                        }}
                     >
                         Add Timer
                     </Button>

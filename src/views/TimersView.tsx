@@ -125,7 +125,7 @@ const TimersView = () => {
                         {renderTimer(timer)}
                         <StyledButtonContainer>
                             <Button
-                                type="edit"
+                                type="button"
                                 height={60}
                                 width={70}
                                 onClick={() => handleEditClick(timer)}

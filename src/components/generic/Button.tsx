@@ -1,7 +1,7 @@
 import styled from "styled-components";
 
 interface Props {
-  type: "button" | "submit" | "reset" | "start" | "pause" | "remove";
+  type: "button" | "submit" | "reset" | "start" | "pause" | "remove" | "edit";
   height: number;
   width: number;
 }
@@ -14,6 +14,8 @@ const StyledButton = styled.button<Props>`
       return "#DBD225";
     } else if (p.type === "reset") {
       return "#864451";
+    } else if (p.type === "edit") {
+      return "#3E535C";
     } else {
       return "#3E535C";
     }
@@ -44,10 +46,10 @@ const Button = ({
   onClick,
 }: {
   children: React.ReactNode;
-  type: "button" | "submit" | "reset" | "start" | "pause" | "remove";
+  type: "button" | "submit" | "reset" | "start" | "pause" | "remove" | "edit";
   height: number;
   width: number;
-  onClick: () => void;
+  onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
 }) => {
   return (
     <StyledButton type={type} height={height} width={width} onClick={onClick}>

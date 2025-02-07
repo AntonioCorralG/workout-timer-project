@@ -7,8 +7,15 @@ const TimerContext = createContext<TimerContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = 'workoutTimerState';
 
-const saveWorkoutToHistory = (workout: { timers: Timer[]; date: string; }) => {
-    const history = JSON.parse(localStorage.getItem('workoutHistory')) || [];
+interface WorkoutHistory {
+    timers: Timer[];
+    date: string;
+  }
+
+const saveWorkoutToHistory = (workout: WorkoutHistory) => {
+    const storedData = localStorage.getItem('workoutHistory');
+
+    const history: WorkoutHistory[] = storedData ? JSON.parse(storedData) : [];
     history.push(workout);
     localStorage.setItem('workoutHistory', JSON.stringify(history));
 };

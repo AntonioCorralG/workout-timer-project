@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { useTimers } from '../../context/TimerContext';
 import type { Timer } from '../../types/types';
 import Button from '../generic/Button';
@@ -38,7 +39,7 @@ const EditTimerModal: React.FC<EditTimerModalProps> = ({ timer, onClose }) => {
                             : t.type === 'tabata'
                                 ? config.workTime * 1000
                                 : config.hours * 3600000 + config.minutes * 60000 + config.seconds * 1000,
-                    state: 'notRunning',
+                    state: 'notRunning' as const,
                 }
                 : t,
         );
