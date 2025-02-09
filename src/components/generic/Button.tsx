@@ -13,35 +13,39 @@ interface ButtonProps extends ButtonStyleProps {
   onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   disabled?: boolean;
   'aria-label'?: string;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>) => void;
+
 }
 
 const StyledButton = styled.button<ButtonStyleProps>`
     background-color: ${(p) => {
     switch (p.type) {
       case "start":
-        return "#3b89a8";
+        return p.theme.colors.primary;
       case "pause":
-        return "#DBD225";
+        return p.theme.colors.accent;
       case "reset":
-        return "#864451";
+        return p.theme.colors.secondary;
       case "edit":
-        return "#3E535C";
+        return p.theme.colors.primary;
       default:
-        return "#3E535C";
+        return p.theme.colors.primary;
     }
   }};
     height: ${props => props.height}px;
     width: ${props => props.width}px;
     border: none;
     border-radius: 10px;
-    padding: 0.5rem;
-    margin: 0.25rem;
+    padding: ${({ theme }) => theme.spacing.sm};
+    margin: ${({ theme }) => theme.spacing.xs};
     cursor: pointer;
     font-weight: 700;
-    color: #b8bebf;
+    color: ${({ theme }) => theme.colors.text.secondary};
+    transition: ${({ theme }) => theme.transitions.default};
 
     &:hover {
-        background-color: #db2549;
+        background-color: ${({ theme }) => theme.colors.error};
+        transform: translateY(-2px);
     }
 
     &:disabled {
@@ -49,12 +53,14 @@ const StyledButton = styled.button<ButtonStyleProps>`
         cursor: not-allowed;
         &:hover {
             background-color: inherit;
+            transform: none;
         }
     }
 
     &:focus-visible {
-        outline: 2px solid #3b89a8;
+        outline: 2px solid ${({ theme }) => theme.colors.primary};
         outline-offset: 2px;
+        box-shadow: ${({ theme }) => theme.shadows.medium};
     }
 `;
 

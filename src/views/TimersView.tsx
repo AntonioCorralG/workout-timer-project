@@ -156,7 +156,7 @@ const TimersView: React.FC = () => {
                     Fast Forward
                 </Button>
                 <Button
-                    type="submit"
+                    type="edit"
                     height={60}
                     width={70}
                     onClick={() => (location.href = '/add')}

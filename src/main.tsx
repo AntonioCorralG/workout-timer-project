@@ -8,6 +8,10 @@ import AddTimer from "./views/AddTimer";
 import HistoryView from './views/HistoryView';
 import { ErrorPage } from "./views/ErrorPageView";
 import { Layout } from "./components/layout/layout";
+import {
+  ThemeProvider
+} from "styled-components";
+import { theme } from './components/generic/styles/theme';
 
 
 
@@ -43,6 +47,9 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <ThemeProvider theme={theme}>
+      <RouterProvider router={router} />
+    </ThemeProvider>
+
   </StrictMode>
 );
