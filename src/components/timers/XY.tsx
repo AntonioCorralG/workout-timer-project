@@ -1,21 +1,31 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useTimers } from "../../context/TimerContext";
 import Button from "../generic/Button";
-import { StyledButtonContainer, TimerDisplay, TimerContainer, TimerDescription } from "../generic/ContainerDisplays";
+import {
+  StyledButtonContainer,
+  TimerDisplay,
+  TimerContainer,
+  TimerDescription,
+  DisplayRounds
+} from "../generic/ContainerDisplays";
 import { formatTime } from "../../utils/helpers";
+import type { TimerComponentProps, Timer, XYConfig } from "../../types/types";
 
-const XY = ({ id }: { id: string }) => {
+const isXYTimer = (timer: Timer): timer is Timer & { config: XYConfig } => {
+  return timer.type === 'xy';
+};
+
+const XY = ({ id }: TimerComponentProps) => {
   const { timers, updateTimerTimeLeft, updateTimerState, nextTimer, removeTimer } = useTimers();
   const timer = timers.find((t) => t.id === id);
 
-  if (!timer) return null;
+  if (!timer || !isXYTimer(timer)) return null;
 
   const { minutes = 0, seconds = 0, numberOfRounds } = timer.config;
   const isRunning = timer.state === "running";
-
   const initialTime = (minutes * 60 + seconds) * 1000;
-  const [roundsLeft, setRoundsLeft] = useState<number>(numberOfRounds);
-  const timeLeft = timer.timeLeft === undefined ? initialTime : timer.timeLeft;
+  const timeLeft = timer.timeLeft;
+  const roundsLeft = timer.currentRound ?? numberOfRounds;
 
   const intervalRef = useRef<number | null>(null);
 
@@ -25,11 +35,17 @@ const XY = ({ id }: { id: string }) => {
         updateTimerTimeLeft(id, timeLeft - 1000);
       }, 1000);
     } else if (isRunning && timeLeft <= 0 && roundsLeft > 1) {
-      clearInterval(intervalRef.current!);
-      setRoundsLeft(roundsLeft - 1);
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+      }
       updateTimerTimeLeft(id, initialTime);
+      if (timer.currentRound) {
+        timer.currentRound--;
+      }
     } else if (isRunning && timeLeft <= 0 && roundsLeft <= 1) {
-      clearInterval(intervalRef.current!);
+      if (intervalRef.current !== null) {
+        clearInterval(intervalRef.current);
+      }
       updateTimerState(id, "completed");
       nextTimer();
     }
@@ -39,12 +55,12 @@ const XY = ({ id }: { id: string }) => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, timeLeft, roundsLeft]);
+  }, [isRunning, timeLeft, roundsLeft, id, initialTime, updateTimerTimeLeft, updateTimerState, nextTimer]);
 
   return (
     <TimerContainer>
       <TimerDisplay>{formatTime(timeLeft)}</TimerDisplay>
-      <div>Rounds Remaining: {roundsLeft}</div>
+      <DisplayRounds>Rounds Remaining: {roundsLeft}</DisplayRounds>
       <TimerDescription>{timer.description}</TimerDescription>
       <StyledButtonContainer>
         <Button
@@ -52,6 +68,7 @@ const XY = ({ id }: { id: string }) => {
           height={60}
           width={70}
           onClick={() => removeTimer(id)}
+          aria-label="Remove timer"
         >
           Remove
         </Button>

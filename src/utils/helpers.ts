@@ -1,6 +1,18 @@
-import type { Timer } from "../types/types";
+import type { Timer, TimerConfig, StopwatchConfig, CountdownConfig, XYConfig, TabataConfig } from "../types/types";
 
-export const formatTime = (milliseconds: number) => {
+const isTimeBasedConfig = (config: TimerConfig): config is StopwatchConfig | CountdownConfig => {
+    return 'hours' in config && 'minutes' in config && 'seconds' in config;
+};
+
+const isXYConfig = (config: TimerConfig): config is XYConfig => {
+    return 'minutes' in config && 'seconds' in config && 'numberOfRounds' in config;
+};
+
+const isTabataConfig = (config: TimerConfig): config is TabataConfig => {
+    return 'workTime' in config && 'restTime' in config;
+};
+
+export const formatTime = (milliseconds: number): string => {
     const hours = Math.floor(milliseconds / 3600000);
     const minutes = Math.floor((milliseconds % 3600000) / 60000);
     const seconds = Math.floor((milliseconds % 60000) / 1000);
@@ -22,24 +34,37 @@ export const decodeTimers = (encoded: string): Timer[] => {
     }
 };
 
-
 export const calculateTotalTime = (timers: Timer[]): number => {
     return timers.reduce((total, timer) => {
+        if (timer.state === 'completed') {
+            return total;
+        }
+
         let timeToAdd = 0;
+
         switch (timer.type) {
             case "countdown":
-                timeToAdd = timer.config.hours * 3600000 + timer.config.minutes * 60000 + timer.config.seconds * 1000;
-                break;
             case "stopwatch":
-                timeToAdd = timer.config.hours * 3600000 + timer.config.minutes * 60000 + timer.config.seconds * 1000;
+                if (isTimeBasedConfig(timer.config)) {
+                    timeToAdd = timer.config.hours * 3600000 + 
+                               timer.config.minutes * 60000 + 
+                               timer.config.seconds * 1000;
+                }
                 break;
             case "xy":
-                timeToAdd = (timer.config.minutes * 60 + timer.config.seconds) * timer.config.numberOfRounds * 1000;
+                if (isXYConfig(timer.config)) {
+                    timeToAdd = (timer.config.minutes * 60 + timer.config.seconds) * 
+                               timer.config.numberOfRounds * 1000;
+                }
                 break;
             case "tabata":
-                timeToAdd = (timer.config.workTime + timer.config.restTime) * timer.config.numberOfRounds * 1000;
+                if (isTabataConfig(timer.config)) {
+                    timeToAdd = (timer.config.workTime + timer.config.restTime) * 
+                               timer.config.numberOfRounds * 1000;
+                }
                 break;
         }
-        return total + Math.max(0, timeToAdd - timer.config.initialTime);
+
+        return total + Math.max(0, timeToAdd - (timer.config.initialTime || 0));
     }, 0);
 };

@@ -8,13 +8,37 @@ import type { Timer } from '../types/types';
 import { TimerContainer } from '../components/generic/ContainerDisplays';
 import Button from '../components/generic/Button';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPause, faPlay, faEdit, faArrowUp, faArrowDown } from '@fortawesome/free-solid-svg-icons';
+import {
+    faPause,
+    faPlay,
+    faEdit,
+    faArrowUp,
+    faArrowDown
+} from '@fortawesome/free-solid-svg-icons';
 import { TimerStyle, TotalTimeDisplay } from '../components/generic/FormStyling';
-import { ButtonContainer, StyledButtonContainer } from '../components/generic/ContainerDisplays';
+import {
+    ButtonContainer,
+    StyledButtonContainer
+} from '../components/generic/ContainerDisplays';
 import EditTimerModal from '../components/modals/EditTimerModal';
 import { formatTime } from '../utils/helpers';
 
-const TimersView = () => {
+
+interface TimerComponentMap {
+    stopwatch: React.FC<{ id: string }>;
+    countdown: React.FC<{ id: string }>;
+    xy: React.FC<{ id: string }>;
+    tabata: React.FC<{ id: string }>;
+}
+
+const timerComponents: TimerComponentMap = {
+    stopwatch: Stopwatch,
+    countdown: Countdown,
+    xy: XY,
+    tabata: Tabata
+};
+
+const TimersView: React.FC = () => {
     const {
         timers,
         currentTimerIndex,
@@ -30,9 +54,9 @@ const TimersView = () => {
         nextTimer
     } = useTimers();
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
     const [editingTimer, setEditingTimer] = useState<Timer | null>(null);
-    const [timeLeft, setTimeLeft] = useState(totalWorkoutTime);
+    const [timeLeft, setTimeLeft] = useState<number>(totalWorkoutTime);
     const intervalRef = useRef<number | null>(null);
 
     useEffect(() => {
@@ -44,7 +68,9 @@ const TimersView = () => {
             intervalRef.current = window.setInterval(() => {
                 setTimeLeft(prevTime => {
                     if (prevTime <= 1000) {
-                        clearInterval(intervalRef.current!);
+                        if (intervalRef.current !== null) {
+                            clearInterval(intervalRef.current);
+                        }
                         nextTimer();
                         return 0;
                     }
@@ -57,70 +83,103 @@ const TimersView = () => {
         }
 
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (intervalRef.current !== null) {
+                clearInterval(intervalRef.current);
+            }
         };
-    }, [isWorkoutRunning]);
+    }, [isWorkoutRunning, nextTimer]);
 
-    const renderTimer = (timer: Timer) => {
-        switch (timer.type) {
-            case 'stopwatch':
-                return <Stopwatch id={timer.id} />;
-            case 'countdown':
-                return <Countdown id={timer.id} />;
-            case 'xy':
-                return <XY id={timer.id} />;
-            case 'tabata':
-                return <Tabata id={timer.id} />;
-            default:
-                return null;
-        }
+    const renderTimer = (timer: Timer): React.ReactNode => {
+        const TimerComponent = timerComponents[timer.type as keyof TimerComponentMap];
+        return TimerComponent ? <TimerComponent id={timer.id} /> : null;
     };
 
-    const handleMoveUpClick = (id: string) => {
+    const handleMoveUpClick = (id: string): void => {
         moveTimerUp(id);
     };
 
-    const handleMoveDownClick = (id: string) => {
+    const handleMoveDownClick = (id: string): void => {
         moveTimerDown(id);
     };
 
-    const handleEditClick = (timer: Timer) => {
+    const handleEditClick = (timer: Timer): void => {
         setEditingTimer(timer);
         setIsModalOpen(true);
     };
 
-    const handleCloseModal = () => {
+    const handleCloseModal = (): void => {
         setIsModalOpen(false);
         setEditingTimer(null);
+    };
+
+    const handleWorkoutReset = (): void => {
+        resetWorkout();
+        setTimeLeft(totalWorkoutTime);
     };
 
     return (
         <>
             <h2>Timers</h2>
-            <TotalTimeDisplay>{`Total Workout Time: ${formatTime(timeLeft)}`}</TotalTimeDisplay>
+            <TotalTimeDisplay>
+                Total Workout Time: {formatTime(timeLeft)}
+            </TotalTimeDisplay>
             <ButtonContainer>
-                <Button type={isWorkoutRunning ? 'pause' : 'start'} height={75} width={200} onClick={isWorkoutRunning ? pauseWorkout : startWorkout}>
-                    <FontAwesomeIcon icon={isWorkoutRunning ? faPause : faPlay} size="3x" color={isWorkoutRunning ? '#3E535C' : '#b8bebf'} />{' '}
+                <Button
+                    type={isWorkoutRunning ? 'pause' : 'start'}
+                    height={75}
+                    width={200}
+                    onClick={isWorkoutRunning ? pauseWorkout : startWorkout}
+                    aria-label={isWorkoutRunning ? 'Pause workout' : 'Start workout'}
+                >
+                    <FontAwesomeIcon
+                        icon={isWorkoutRunning ? faPause : faPlay}
+                        size="3x"
+                        color={isWorkoutRunning ? '#3E535C' : '#b8bebf'}
+                    />
                 </Button>
-                <Button type="reset" height={60} width={70} onClick={() => {
-                    resetWorkout();
-                    setTimeLeft(totalWorkoutTime);
-                }}>
+                <Button
+                    type="reset"
+                    height={60}
+                    width={70}
+                    onClick={handleWorkoutReset}
+                    aria-label="Reset workout"
+                >
                     Reset
                 </Button>
-                <Button height={60} type="submit" width={70} onClick={fastForward}>
+                <Button
+                    type="submit"
+                    height={60}
+                    width={70}
+                    onClick={fastForward}
+                    aria-label="Fast forward"
+                >
                     Fast Forward
                 </Button>
-                <Button height={60} type="submit" width={70} onClick={() => (location.href = '/add')}>
+                <Button
+                    type="submit"
+                    height={60}
+                    width={70}
+                    onClick={() => (location.href = '/add')}
+                    aria-label="Add new timer"
+                >
                     Add Timer
                 </Button>
-                <Button type="button" height={60} width={120} onClick={savingTimerURLS}>
+                <Button
+                    type="button"
+                    height={60}
+                    width={120}
+                    onClick={savingTimerURLS}
+                    aria-label="Save workout"
+                >
                     Save Workout
                 </Button>
             </ButtonContainer>
             <TimerContainer>
                 {timers.map((timer, index) => (
-                    <TimerStyle key={`timer-${timer.id}`} style={{ opacity: index === currentTimerIndex ? 1 : 0.5 }}>
+                    <TimerStyle
+                        key={`timer-${timer.id}`}
+                        style={{ opacity: index === currentTimerIndex ? 1 : 0.5 }}
+                    >
                         <div>{timer.type}</div>
                         {renderTimer(timer)}
                         <StyledButtonContainer>
@@ -129,13 +188,26 @@ const TimersView = () => {
                                 height={60}
                                 width={70}
                                 onClick={() => handleEditClick(timer)}
+                                aria-label="Edit timer"
                             >
                                 <FontAwesomeIcon icon={faEdit} size="2x" />
                             </Button>
-                            <Button type="button" height={40} width={40} onClick={() => handleMoveUpClick(timer.id)}>
+                            <Button
+                                type="button"
+                                height={40}
+                                width={40}
+                                onClick={() => handleMoveUpClick(timer.id)}
+                                aria-label="Move timer up"
+                            >
                                 <FontAwesomeIcon icon={faArrowUp} />
                             </Button>
-                            <Button type="button" height={40} width={40} onClick={() => handleMoveDownClick(timer.id)}>
+                            <Button
+                                type="button"
+                                height={40}
+                                width={40}
+                                onClick={() => handleMoveDownClick(timer.id)}
+                                aria-label="Move timer down"
+                            >
                                 <FontAwesomeIcon icon={faArrowDown} />
                             </Button>
                         </StyledButtonContainer>
@@ -143,11 +215,13 @@ const TimersView = () => {
                 ))}
             </TimerContainer>
             {isModalOpen && editingTimer && (
-                <EditTimerModal timer={editingTimer} onClose={handleCloseModal} />
+                <EditTimerModal
+                    timer={editingTimer}
+                    onClose={handleCloseModal}
+                />
             )}
         </>
     );
 };
 
 export default TimersView;
-

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { Timer, TimerContextType } from '../types/types';
+import type { CountdownConfig, StopwatchConfig, TabataConfig, Timer, TimerContextType, TimerState, XYConfig } from '../types/types';
 import { decodeTimers, encodeTimers } from '../utils/helpers';
 
 const TimerContext = createContext<TimerContextType | undefined>(undefined);
@@ -10,7 +10,11 @@ const LOCAL_STORAGE_KEY = 'workoutTimerState';
 interface WorkoutHistory {
     timers: Timer[];
     date: string;
-  }
+}
+
+interface TimerProviderProps {
+    children: ReactNode;
+}
 
 const saveWorkoutToHistory = (workout: WorkoutHistory) => {
     const storedData = localStorage.getItem('workoutHistory');
@@ -20,31 +24,52 @@ const saveWorkoutToHistory = (workout: WorkoutHistory) => {
     localStorage.setItem('workoutHistory', JSON.stringify(history));
 };
 
-const totalWorkoutTimeCalc = (timers: Timer[]): number => {
-    return timers.reduce((total, timer) => {
-        if (timer.state !== 'completed') { // Only include time for not completed timers
-            switch (timer.type) {
-                case "countdown":
-                case "stopwatch":
-                    return total + timer.config.hours * 3600000 + timer.config.minutes * 60000 + timer.config.seconds * 1000;
-                case "xy":
-                    return total + (timer.config.minutes * 60 + timer.config.seconds) * timer.config.numberOfRounds * 1000;
-                case "tabata":
-                    return total + (timer.config.workTime + timer.config.restTime) * timer.config.numberOfRounds * 1000;
-                default:
-                    return total;
-            }
-        }
-        return total;
-    }, 0);
+
+// Add type guards to check timer types
+const isStopwatchOrCountdown = (timer: Timer): timer is Timer & { config: StopwatchConfig | CountdownConfig } => {
+    return timer.type === 'stopwatch' || timer.type === 'countdown';
 };
 
-export const TimerProvider = ({ children }: { children: ReactNode }) => {
+const isXY = (timer: Timer): timer is Timer & { config: XYConfig } => {
+    return timer.type === 'xy';
+};
+
+const isTabata = (timer: Timer): timer is Timer & { config: TabataConfig } => {
+    return timer.type === 'tabata';
+};
+
+const totalWorkoutTimeCalc = (timers: Timer[]): number => {
+    return timers.reduce((total, timer) => {
+        if (timer.state === 'completed') {
+            return total;
+        }
+
+        if (isStopwatchOrCountdown(timer)) {
+            return total + timer.config.hours * 3600000 +
+                timer.config.minutes * 60000 +
+                timer.config.seconds * 1000;
+        }
+
+        if (isXY(timer)) {
+            return total + (timer.config.minutes * 60 + timer.config.seconds) *
+                timer.config.numberOfRounds * 1000;
+        }
+
+        if (isTabata(timer)) {
+            return total + (timer.config.workTime + timer.config.restTime) *
+                timer.config.numberOfRounds * 1000;
+        }
+
+        return total;
+    }, 0);
+}
+
+export const TimerProvider = ({ children }: TimerProviderProps) => {
     const [timers, setTimersState] = useState<Timer[]>([]);
-    const [currentTimerIndex, setCurrentTimerIndex] = useState(0);
-    const [isWorkoutRunning, setIsWorkoutRunning] = useState(false);
+    const [currentTimerIndex, setCurrentTimerIndex] = useState<number>(0);
+    const [isWorkoutRunning, setIsWorkoutRunning] = useState<boolean>(false);
     const [searchParams, setSearchParams] = useSearchParams();
-    const [totalWorkoutTime, setTotalWorkoutTime] = useState(0);
+    const [totalWorkoutTime, setTotalWorkoutTime] = useState<number>(0);
 
 
     useEffect(() => {
@@ -162,19 +187,49 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         setCurrentTimerIndex(0);
         setIsWorkoutRunning(false);
         setTimersState(prevTimers =>
-            prevTimers.map(timer => ({
-                ...timer,
-                state: 'notRunning',
-                timeLeft: timer.type === 'stopwatch' ? 0 : timer.config.initialTime || 0,
-                currentRound: timer.type === 'xy' ? timer.config.numberOfRounds : undefined,
-            }))
+            prevTimers.map(timer => {
+                // Base reset properties
+                const baseReset = {
+                    ...timer,
+                    state: 'notRunning' as const,
+                };
+
+                // Handle timeLeft based on timer type
+                if (timer.type === 'stopwatch') {
+                    return {
+                        ...baseReset,
+                        timeLeft: 0
+                    };
+                }
+
+                // Handle XY timer
+                if (isXY(timer)) {
+                    return {
+                        ...baseReset,
+                        timeLeft: timer.config.initialTime,
+                        currentRound: timer.config.numberOfRounds
+                    };
+                }
+
+                // All other timer types
+                return {
+                    ...baseReset,
+                    timeLeft: timer.config.initialTime || 0,
+                    currentRound: undefined
+                };
+            })
         );
         setTotalWorkoutTime(totalWorkoutTimeCalc(timers));
     };
 
-    const updateTimerState = (id: string, state: 'running' | 'notRunning' | 'completed') => {
-        setTimersState(prevTimers => prevTimers.map(timer => (timer.id === id ? { ...timer, state } : timer)));
+    const updateTimerState = (id: string, state: TimerState): void => {
+        setTimersState(prevTimers =>
+            prevTimers.map(timer =>
+                timer.id === id ? { ...timer, state } : timer
+            )
+        );
     };
+
 
     const updateTimerTimeLeft = (id: string, timeLeft: number) => {
         setTimersState(prevTimers => prevTimers.map(timer => (timer.id === id ? { ...timer, timeLeft } : timer)));
@@ -230,34 +285,34 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
+    const contextValue: TimerContextType = {
+        timers,
+        currentTimerIndex,
+        isWorkoutRunning,
+        totalWorkoutTime,
+        addTimer,
+        removeTimer,
+        startWorkout,
+        pauseWorkout,
+        resetWorkout,
+        fastForward,
+        updateTimerState,
+        updateTimerTimeLeft,
+        nextTimer,
+        savingTimerURLS,
+        setTimers,
+        moveTimerUp,
+        moveTimerDown,
+    };
+
     return (
-        <TimerContext.Provider
-            value={{
-                timers,
-                currentTimerIndex,
-                isWorkoutRunning,
-                addTimer,
-                removeTimer,
-                startWorkout,
-                pauseWorkout,
-                resetWorkout,
-                fastForward,
-                updateTimerState,
-                updateTimerTimeLeft,
-                nextTimer,
-                savingTimerURLS,
-                setTimers,
-                totalWorkoutTime,
-                moveTimerUp,
-                moveTimerDown
-            }}
-        >
+        <TimerContext.Provider value={contextValue}>
             {children}
         </TimerContext.Provider>
     );
 };
 
-export const useTimers = () => {
+export const useTimers = (): TimerContextType => {
     const context = useContext(TimerContext);
     if (context === undefined) {
         throw new Error('useTimers must be used within a TimerProvider');

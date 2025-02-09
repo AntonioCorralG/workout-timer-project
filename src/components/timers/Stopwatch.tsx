@@ -3,12 +3,20 @@ import { useTimers } from "../../context/TimerContext";
 import Button from "../generic/Button";
 import { StyledButtonContainer, TimerDisplay, TimerContainer, TimerDescription } from "../generic/ContainerDisplays";
 import { formatTime } from "../../utils/helpers";
+import type { TimerComponentProps, Timer, StopwatchConfig } from "../../types/types";
 
-const Stopwatch = ({ id }: { id: string }) => {
+
+const isStopwatchTimer = (timer: Timer): timer is Timer & { config: StopwatchConfig } => {
+  return timer.type === 'stopwatch';
+};
+
+
+
+const Stopwatch = ({ id }: TimerComponentProps) => {
   const { timers, updateTimerTimeLeft, updateTimerState, nextTimer, removeTimer } = useTimers();
   const timer = timers.find((t) => t.id === id);
 
-  if (!timer) return null;
+  if (!timer || !isStopwatchTimer(timer)) return null;
 
   const isRunning = timer.state === "running";
   const timeLeft = timer.timeLeft;
@@ -35,7 +43,7 @@ const Stopwatch = ({ id }: { id: string }) => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isRunning, timeLeft, targetTime]);
+  }, [isRunning, timeLeft, targetTime, id, updateTimerTimeLeft, updateTimerState, nextTimer]);
 
   return (
     <TimerContainer>
@@ -47,6 +55,7 @@ const Stopwatch = ({ id }: { id: string }) => {
           height={60}
           width={70}
           onClick={() => removeTimer(id)}
+          aria-label="Remove timer"
         >
           Remove
         </Button>

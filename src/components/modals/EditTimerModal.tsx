@@ -1,7 +1,8 @@
+// components/modals/EditTimerModal.tsx
 import type React from 'react';
 import { useState } from 'react';
 import { useTimers } from '../../context/TimerContext';
-import type { Timer } from '../../types/types';
+import type { Timer, TimerConfig, StopwatchConfig, CountdownConfig, TabataConfig } from '../../types/types';
 import Button from '../generic/Button';
 import { StyledLabel } from '../generic/FormStyling';
 import { FormContainer, StyledButtonContainer } from '../generic/ContainerDisplays';
@@ -12,20 +13,49 @@ interface EditTimerModalProps {
     onClose: () => void;
 }
 
+// Type guards
+const isTabataConfig = (config: TimerConfig): config is TabataConfig => {
+    return 'workTime' in config && 'restTime' in config;
+};
+
+const isTimeBasedConfig = (config: TimerConfig): config is StopwatchConfig | CountdownConfig => {
+    return 'hours' in config && 'minutes' in config && 'seconds' in config;
+};
+
 const EditTimerModal: React.FC<EditTimerModalProps> = ({ timer, onClose }) => {
     const { setTimers, savingTimerURLS, timers, resetWorkout } = useTimers();
-    const [config, setConfig] = useState(timer.config);
+    const [config, setConfig] = useState<TimerConfig>(timer.config);
     const [description, setDescription] = useState(timer.description);
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setConfig({ ...config, [event.target.name]: Number(event.target.value) });
+        setConfig(prev => ({
+            ...prev,
+            [event.target.name]: Number(event.target.value)
+        }));
     };
 
     const handleDescriptionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setDescription(event.target.value);
     };
 
-    // In EditTimerModal.tsx
+    const calculateTimeLeft = (type: Timer['type'], currentConfig: TimerConfig): number => {
+        if (type === 'stopwatch') {
+            return 0;
+        }
+
+        if (type === 'tabata' && isTabataConfig(currentConfig)) {
+            return currentConfig.workTime * 1000;
+        }
+
+        if (isTimeBasedConfig(currentConfig)) {
+            return currentConfig.hours * 3600000 +
+                currentConfig.minutes * 60000 +
+                currentConfig.seconds * 1000;
+        }
+
+        return 0;
+    };
+
     const handleSaveClick = () => {
         const updatedTimers = timers.map(t =>
             t.id === timer.id
@@ -33,21 +63,130 @@ const EditTimerModal: React.FC<EditTimerModalProps> = ({ timer, onClose }) => {
                     ...t,
                     config,
                     description,
-                    timeLeft:
-                        t.type === 'stopwatch'
-                            ? 0
-                            : t.type === 'tabata'
-                                ? config.workTime * 1000
-                                : config.hours * 3600000 + config.minutes * 60000 + config.seconds * 1000,
+                    timeLeft: calculateTimeLeft(t.type, config),
                     state: 'notRunning' as const,
                 }
-                : t,
+                : t
         );
 
         setTimers(updatedTimers);
         savingTimerURLS();
-        resetWorkout(); // Reset the workout after editing
+        resetWorkout();
         onClose();
+    };
+
+    const renderTimerInputs = () => {
+        switch (timer.type) {
+            case 'stopwatch':
+            case 'countdown':
+                if (isTimeBasedConfig(config)) {
+                    return (
+                        <>
+                            <StyledLabel>
+                                Hours:
+                                <input
+                                    name="hours"
+                                    type="number"
+                                    value={config.hours}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                            <StyledLabel>
+                                Minutes:
+                                <input
+                                    name="minutes"
+                                    type="number"
+                                    value={config.minutes}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                            <StyledLabel>
+                                Seconds:
+                                <input
+                                    name="seconds"
+                                    type="number"
+                                    value={config.seconds}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                        </>
+                    );
+                }
+                break;
+
+            case 'xy':
+                if ('minutes' in config && 'seconds' in config && 'numberOfRounds' in config) {
+                    return (
+                        <>
+                            <StyledLabel>
+                                Minutes:
+                                <input
+                                    name="minutes"
+                                    type="number"
+                                    value={config.minutes}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                            <StyledLabel>
+                                Seconds:
+                                <input
+                                    name="seconds"
+                                    type="number"
+                                    value={config.seconds}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                            <StyledLabel>
+                                Rounds:
+                                <input
+                                    name="numberOfRounds"
+                                    type="number"
+                                    value={config.numberOfRounds}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                        </>
+                    );
+                }
+                break;
+
+            case 'tabata':
+                if (isTabataConfig(config)) {
+                    return (
+                        <>
+                            <StyledLabel>
+                                Work Time (seconds):
+                                <input
+                                    name="workTime"
+                                    type="number"
+                                    value={config.workTime}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                            <StyledLabel>
+                                Rest Time (seconds):
+                                <input
+                                    name="restTime"
+                                    type="number"
+                                    value={config.restTime}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                            <StyledLabel>
+                                Rounds:
+                                <input
+                                    name="numberOfRounds"
+                                    type="number"
+                                    value={config.numberOfRounds}
+                                    onChange={handleInputChange}
+                                />
+                            </StyledLabel>
+                        </>
+                    );
+                }
+                break;
+        }
+        return null;
     };
 
     return (
@@ -56,114 +195,12 @@ const EditTimerModal: React.FC<EditTimerModalProps> = ({ timer, onClose }) => {
                 <FormContainer>
                     <h2>Edit Timer</h2>
                     <form>
-                        {(timer.type === 'countdown' || timer.type === 'stopwatch') && (
-                            <>
-                                <StyledLabel>
-                                    Hours:
-                                    <input
-                                        name="hours"
-                                        type="number"
-                                        placeholder="Hours"
-                                        value={config.hours}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                                <StyledLabel>
-                                    Minutes:
-                                    <input
-                                        name="minutes"
-                                        type="number"
-                                        placeholder="Minutes"
-                                        value={config.minutes}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                                <StyledLabel>
-                                    Seconds:
-                                    <input
-                                        name="seconds"
-                                        type="number"
-                                        placeholder="Seconds"
-                                        value={config.seconds}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                            </>
-                        )}
-                        {timer.type === 'xy' && (
-                            <>
-                                <StyledLabel>
-                                    Minutes:
-                                    <input
-                                        name="minutes"
-                                        type="number"
-                                        placeholder="Minutes"
-                                        value={config.minutes}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                                <StyledLabel>
-                                    Seconds:
-                                    <input
-                                        name="seconds"
-                                        type="number"
-                                        placeholder="Seconds"
-                                        value={config.seconds}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                                <StyledLabel>
-                                    Rounds:
-                                    <input
-                                        name="numberOfRounds"
-                                        type="number"
-                                        placeholder="Rounds"
-                                        value={config.numberOfRounds}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                            </>
-                        )}
-                        {timer.type === 'tabata' && (
-                            <>
-                                <StyledLabel>
-                                    Work Time (seconds):
-                                    <input
-                                        name="workTime"
-                                        type="number"
-                                        placeholder="Work Time (seconds)"
-                                        value={config.workTime}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                                <StyledLabel>
-                                    Rest Time (seconds):
-                                    <input
-                                        name="restTime"
-                                        type="number"
-                                        placeholder="Rest Time (seconds)"
-                                        value={config.restTime}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                                <StyledLabel>
-                                    Rounds:
-                                    <input
-                                        name="numberOfRounds"
-                                        type="number"
-                                        placeholder="Rounds"
-                                        value={config.numberOfRounds}
-                                        onChange={handleInputChange}
-                                    />
-                                </StyledLabel>
-                            </>
-                        )}
+                        {renderTimerInputs()}
                         <StyledLabel>
                             Description:
                             <input
                                 name="description"
                                 type="text"
-                                placeholder="Description"
                                 value={description}
                                 onChange={handleDescriptionChange}
                             />

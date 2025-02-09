@@ -1,41 +1,61 @@
 import styled from "styled-components";
 
-interface Props {
-  type: "button" | "submit" | "reset" | "start" | "pause" | "remove" | "edit";
+export type ButtonType = "button" | "submit" | "reset" | "start" | "pause" | "remove" | "edit";
+
+interface ButtonStyleProps {
+  type: ButtonType;
   height: number;
   width: number;
 }
 
-const StyledButton = styled.button<Props>`
-  background-color: ${(p) => {
-    if (p.type === "start") {
-      return "#3b89a8";
-    } else if (p.type === "pause") {
-      return "#DBD225";
-    } else if (p.type === "reset") {
-      return "#864451";
-    } else if (p.type === "edit") {
-      return "#3E535C";
-    } else {
-      return "#3E535C";
+interface ButtonProps extends ButtonStyleProps {
+  children: React.ReactNode;
+  onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
+  'aria-label'?: string;
+}
+
+const StyledButton = styled.button<ButtonStyleProps>`
+    background-color: ${(p) => {
+    switch (p.type) {
+      case "start":
+        return "#3b89a8";
+      case "pause":
+        return "#DBD225";
+      case "reset":
+        return "#864451";
+      case "edit":
+        return "#3E535C";
+      default:
+        return "#3E535C";
     }
   }};
-  height: ${(props) => {
-    return props.height;
-  }}px;
-  border: none;
-  border-radius: 10px;
-  &:hover {
-    background-color: #db2549;
-  }
-  width: ${(props) => {
-    return props.width;
-  }}px;
-  padding: 0.5rem;
-  margin: 0.25rem;
-  cursor: pointer;
-  font-weight: 700;
-  color: #b8bebf;
+    height: ${props => props.height}px;
+    width: ${props => props.width}px;
+    border: none;
+    border-radius: 10px;
+    padding: 0.5rem;
+    margin: 0.25rem;
+    cursor: pointer;
+    font-weight: 700;
+    color: #b8bebf;
+
+    &:hover {
+        background-color: #db2549;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        &:hover {
+            background-color: inherit;
+        }
+    }
+
+    &:focus-visible {
+        outline: 2px solid #3b89a8;
+        outline-offset: 2px;
+    }
 `;
 
 const Button = ({
@@ -44,15 +64,18 @@ const Button = ({
   height,
   width,
   onClick,
-}: {
-  children: React.ReactNode;
-  type: "button" | "submit" | "reset" | "start" | "pause" | "remove" | "edit";
-  height: number;
-  width: number;
-  onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
-}) => {
+  disabled = false,
+  'aria-label': ariaLabel,
+}: ButtonProps) => {
   return (
-    <StyledButton type={type} height={height} width={width} onClick={onClick}>
+    <StyledButton
+      type={type}
+      height={height}
+      width={width}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+    >
       {children}
     </StyledButton>
   );
