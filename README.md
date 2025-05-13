@@ -101,4 +101,5 @@ A timer that counts up from zero until manually stopped.
 An interval timer alternating between work and rest periods for a specified number of rounds.
 ### XY Timer
 A timer that repeats a countdown for a specified number of rounds.
+![image](https://github.com/user-attachments/assets/e24dbd62-04f5-475b-b761-2206f1ca204a)
 
