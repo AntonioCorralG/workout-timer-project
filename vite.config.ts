@@ -11,7 +11,7 @@ export default ({ mode }) => {
     const base = !isDev ? `/${splitHomepage[splitHomepage.length - 2]}/` : '/';
 
     return defineConfig({
-        base,
+        base: '/assignment-3-AntonioCorralG/',
         plugins: [
             react(),
             checker({
