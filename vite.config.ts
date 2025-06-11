@@ -11,7 +11,7 @@ export default ({ mode }) => {
     const base = !isDev ? `/${splitHomepage[splitHomepage.length - 2]}/` : '/';
 
     return defineConfig({
-        base: '/workout-timer-project/',
+        base,
         plugins: [
             react(),
             checker({
