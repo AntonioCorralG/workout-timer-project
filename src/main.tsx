@@ -15,34 +15,39 @@ import { theme } from './components/generic/styles/theme';
 
 
 
-const router = createBrowserRouter([
+const router = createBrowserRouter(
+  [
+    {
+      path: "/",
+      element: (
+        <TimerProvider>
+          <ErrorBoundary FallbackComponent={ErrorPage}>
+            <Layout>
+              <Outlet />
+            </Layout>
+          </ErrorBoundary>
+        </TimerProvider>
+      ),
+      children: [
+        {
+          index: true,
+          element: <TimersView />,
+        },
+        {
+          path: "add",
+          element: <AddTimer />,
+        },
+        {
+          path: "history",
+          element: <HistoryView />,
+        },
+      ],
+    },
+  ],
   {
-    path: "/",
-    element: (
-      <TimerProvider>
-        <ErrorBoundary FallbackComponent={ErrorPage}>
-          <Layout>
-            <Outlet />
-          </Layout>
-        </ErrorBoundary>
-      </TimerProvider>
-    ),
-    children: [
-      {
-        index: true,
-        element: <TimersView />,
-      },
-      {
-        path: "/add",
-        element: <AddTimer />,
-      },
-      {
-        path: "/history",
-        element: <HistoryView />,
-      }
-    ],
-  },
-]);
+    basename: "/workout-timer-project",
+  }
+);
 
 
 createRoot(document.getElementById("root")!).render(
